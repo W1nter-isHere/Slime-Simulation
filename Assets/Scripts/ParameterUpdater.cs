@@ -1,8 +1,13 @@
-﻿using UnityEngine;
+﻿using TMPro;
+using UnityEngine;
 
 public class ParameterUpdater : MonoBehaviour
 {
     [SerializeField] private Simulation simulation;
+
+    [SerializeField] private TMP_InputField redChannel;
+    [SerializeField] private TMP_InputField greenChannel;
+    [SerializeField] private TMP_InputField blueChannel;
     
     public void SensoryRangeChanged(string value)
     {
@@ -54,8 +59,61 @@ public class ParameterUpdater : MonoBehaviour
         simulation.DirtyLifetime = true;
     }
 
+    public void RValueChanged(string value)
+    {
+        if (byte.TryParse(value, out var v))
+        {
+            if (v == 0)
+            {
+                v = 1;
+            }
+            redChannel.SetTextWithoutNotify(v.ToString());
+            
+            var color = simulation.slimeColor;
+            color.r = v;
+            simulation.slimeColor = color;
+        }
+    }
+    
+    public void GValueChanged(string value)
+    {
+        if (byte.TryParse(value, out var v))
+        {
+            if (v == 0)
+            {
+                v = 1;
+            }
+            greenChannel.SetTextWithoutNotify(v.ToString());
+
+            var color = simulation.slimeColor;
+            color.g = v;
+            simulation.slimeColor = color;
+        }
+    }
+    
+    public void BValueChanged(string value)
+    {
+        if (byte.TryParse(value, out var v))
+        {
+            if (v == 0)
+            {
+                v = 1;
+            }
+            blueChannel.SetTextWithoutNotify(v.ToString());
+
+            var color = simulation.slimeColor;
+            color.b = v;
+            simulation.slimeColor = color;
+        }
+    }
+
     public void Reset()
     {
         simulation.Reset();
+    }
+
+    public void Add()
+    {
+        simulation.Add();
     }
 }

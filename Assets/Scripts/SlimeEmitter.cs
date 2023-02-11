@@ -11,6 +11,7 @@ public class SlimeEmitter : MonoBehaviour
 
     private void Start()
     {
+        simulation = Simulation.Instance;
         _position = Camera.main.WorldToScreenPoint(transform.position);
     }
 

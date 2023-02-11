@@ -6,6 +6,7 @@ struct slime
      float angle;
      float speed;
      float time_elapsed;
+     float4 color;
      uint multiplied_speed;
      uint valid;
 };
@@ -23,7 +24,7 @@ int sensory_range;
 float delta_time;
 float speed;
 
-void plot_line_low(const int x0, const int y0, const int x1, const int y1)
+void plot_line_low(const int x0, const int y0, const int x1, const int y1, const slime slime)
 {
      int dx = x1 - x0;
      int dy = y1 - y0;
@@ -40,7 +41,7 @@ void plot_line_low(const int x0, const int y0, const int x1, const int y1)
 
      for (int x = x0; x < x1; x++)
      {
-          result[int2(x, y)] = float4(0.26, 0.96, 0.54, 1);
+          result[int2(x, y)] = slime.color;
           if (d > 0)
           {
                y = y + yi;
@@ -51,7 +52,7 @@ void plot_line_low(const int x0, const int y0, const int x1, const int y1)
           }
      }
 }
-void plot_line_high(const int x0, const int y0, const int x1, const int y1)
+void plot_line_high(const int x0, const int y0, const int x1, const int y1, const slime slime)
 {
      int dx = x1 - x0;
      int dy = y1 - y0;
@@ -65,7 +66,7 @@ void plot_line_high(const int x0, const int y0, const int x1, const int y1)
      int x = x0;
      for (int y = y0; y <= y1; y++)
      {
-          result[int2(x, y)] = float4(0.26, 0.96, 0.54, 1);
+          result[int2(x, y)] = slime.color;
           if (d > 0)
           {
                x = x + xi;
@@ -77,28 +78,28 @@ void plot_line_high(const int x0, const int y0, const int x1, const int y1)
           }
      }
 }
-void plot_line(const int x0, const int y0, const int x1, const int y1)
+void plot_line(const int x0, const int y0, const int x1, const int y1, const slime slime)
 {
      if (abs(y1 - y0) < abs(x1 - x0))
      {
           if (x0 > x1)
           {
-               plot_line_low(x1, y1, x0, y0);
+               plot_line_low(x1, y1, x0, y0, slime);
           }
           else
           {
-               plot_line_low(x0, y0, x1, y1);
+               plot_line_low(x0, y0, x1, y1, slime);
           }
      }
      else
      {
           if (y0 > y1)
           {
-               plot_line_high(x1, y1, x0, y0);
+               plot_line_high(x1, y1, x0, y0, slime);
           }
           else
           {
-               plot_line_high(x0, y0, x1, y1);
+               plot_line_high(x0, y0, x1, y1, slime);
           }
      }
 }
@@ -110,17 +111,26 @@ float vec_to_angle(float2 vec)
 {
      return atan2(vec.y, vec.x);
 }
+bool compare_colors(float3 color1, float3 color2)
+{
+     float3 ratio1 = color1 / max(color1.r, max(color1.g, color1.b));
+     float3 ratio2 = color2 / max(color2.r, max(color2.g, color2.b));
+
+     return (abs(ratio1.r - ratio2.r) <= 0.05) &&
+            (abs(ratio1.g - ratio2.g) <= 0.05) &&
+            (abs(ratio1.b - ratio2.b) <= 0.05);
+}
 
 float distance(int2 v1, int2 v2)
 {
      return sqrt(pow((float) v2.x - v1.x, 2) + pow((float)v2.y - v1.y, 2));
 }
-float raycast(const int2 position, const float angle)
+float raycast(const int2 position, const float angle, slime slime)
 {
      float sum = 0;
      float2 dir = angle_to_vec(angle);
      float2 pos = position;
-
+     
      for (int i = 0; i < sensory_range; i++)
      {
           // Check if the current position is within the bounds of the texture
@@ -130,22 +140,33 @@ float raycast(const int2 position, const float angle)
           }
 
           int2 checking_pos = int2((int)pos.x, (int)pos.y);
-          
+
+          // check for poi
           for (int j = 0; j < poi_count; j++)
           {
                int2 curr_pos = poi[j];
                if (curr_pos.x == checking_pos.x && curr_pos.y == checking_pos.y)
                {
-                    // makes this way more desirable
                     sum *= 2;
-                    result[position] = float4(1, 0, 0, 1);
                     break;
                }
           }
-          
-          // Sample the color at the current position
-          sum += result[checking_pos];
-          
+
+          // check for different species
+          float4 checking_color = result[checking_pos];
+
+          if (checking_color.r != 0 || checking_color.b != 0 || checking_color.g != 0)
+          {
+               // color ratio does not match, its a different species
+               if (!compare_colors(slime.color, checking_color))
+               {
+                    sum -= checking_color;
+               } else
+               {
+                    sum += checking_color;
+               }
+          }
+
           // Move the current position along the ray in the direction of the angle
           pos += dir;
      }
@@ -168,9 +189,9 @@ void CSMain(uint3 id : SV_DispatchThreadID)
      s.speed = speed;
      
      const float rand = steer_randoms[id.x];
-     const float left = raycast(s.position, s.angle + radians(25)) * rand;
-     const float front = raycast(s.position, s.angle) * rand;
-     const float right = raycast(s.position, s.angle - radians(25)) * rand;
+     const float left = raycast(s.position, s.angle + radians(25), s) * rand;
+     const float front = raycast(s.position, s.angle, s) * rand;
+     const float right = raycast(s.position, s.angle - radians(25), s) * rand;
 
      const float heaviest = max(max(left, front), right);     
      if (heaviest == left)
@@ -208,7 +229,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
      const int2 pos = int2(x, y);
      
      // plot a line on the texture
-     plot_line(s.position.x, s.position.y, x, y);
+     plot_line(s.position.x, s.position.y, x, y, s);
 
      // update position
      s.position = pos;

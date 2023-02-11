@@ -10,6 +10,8 @@ using Screen = UnityEngine.Device.Screen;
 
 public class Simulation : MonoBehaviour
 {
+    public static Simulation Instance { get; private set; }
+    
     public int sensoryRange = 20;
     public float speed = 10;
     public float minimumSteerRandomnessFactor = 0.75f;
@@ -17,6 +19,7 @@ public class Simulation : MonoBehaviour
     public float minimumLifetime = 45;
     public float maximumLifetime = 90;
     public int numberOfSlimes = 360000;
+    public Color32 slimeColor = Color.white;
 
     [NonSerialized] public bool DirtySteerFactor;
     [NonSerialized] public bool DirtyLifetime;
@@ -27,16 +30,19 @@ public class Simulation : MonoBehaviour
     [SerializeField] private ComputeShader postProcessingShader;
     [SerializeField] private ComputeShader clearScreenShader;
     [SerializeField] private ComputeShader pointRendererShader;
-    [SerializeField, Min(1)] private int updateInterval;
     [SerializeField, Min(1)] private int poiVisualRadius;
-    
-    private int _tick;
+
     private RenderTexture _mainTexture;
 
     private List<Slime> _slimes;
     private List<int2> _poi;
     private List<float> _steerRandoms;
     private List<float> _lifetimeRandoms;
+
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     private void Start()
     {
@@ -55,17 +61,16 @@ public class Simulation : MonoBehaviour
     private void OnRenderImage(RenderTexture src, RenderTexture dest)
     {
         var deltaTime = Time.deltaTime;
-        
+
         var poiCount = _poi.Count;
-        ComputeBuffer poiBuffer = null;
-        
+        var poiBuffer = new ComputeBuffer(poiCount == 0 ? 1 : poiCount, Marshal.SizeOf<int2>());
+
         if (poiCount > 0)
         {
-            poiBuffer = new ComputeBuffer(poiCount, Marshal.SizeOf<int2>());
             poiBuffer.SetData(_poi);
         }
-        
-        if (_tick % updateInterval == 0 && _slimes.Count > 0)
+
+        if (_slimes.Count > 0)
         {
             var slimesBuffer = new ComputeBuffer(_slimes.Count, Marshal.SizeOf<Slime>());
 
@@ -75,7 +80,7 @@ public class Simulation : MonoBehaviour
             slimesBuffer.SetData(_slimes);
             steerRandomsBuffer.SetData(_steerRandoms);
             lifetimeRandomsBuffer.SetData(_lifetimeRandoms);
-
+            
             simulationShader.SetBuffer(0, "poi", poiBuffer);
             simulationShader.SetBuffer(0, "slimes", slimesBuffer);
             simulationShader.SetBuffer(0, "steer_randoms", steerRandomsBuffer);
@@ -120,26 +125,39 @@ public class Simulation : MonoBehaviour
             pointRendererShader.SetTexture(0, "result", _mainTexture);
             pointRendererShader.SetInt("radius", poiVisualRadius);
             pointRendererShader.Dispatch(0, poiCount, 1, 1);
-            poiBuffer?.Dispose();
         }
-
+        
+        poiBuffer.Dispose();
         UpdateRandoms();
-
-        _tick++;
         Graphics.Blit(_mainTexture, dest);
     }
 
     public void AddSlime(Vector2 screenSpace)
     {
-        SpawnSlime(new Slime(new int2((int)(screenSpace.x / Screen.width * _mainTexture.width), (int)(screenSpace.y / Screen.height * _mainTexture.height)), Random.Range(0, 361)));
+        SpawnSlime(new Slime(
+            new int2((int)(screenSpace.x / Screen.width * _mainTexture.width), (int)(screenSpace.y / Screen.height * _mainTexture.height)),
+            Random.Range(0, 361),
+            slimeColor
+        ));
     }
 
     public void AddPoi(Vector2 screenSpace)
     {
-        var p = new int2((int)(screenSpace.x / Screen.width * _mainTexture.width), (int)(screenSpace.y / Screen.height * _mainTexture.height));
+        var p = new int2((int)(screenSpace.x / Screen.width * _mainTexture.width),
+            (int)(screenSpace.y / Screen.height * _mainTexture.height));
         if (!_poi.Contains(p))
         {
             _poi.Add(p);
+        }
+    }
+
+    public void Add()
+    {
+        var increment = 360f / numberOfSlimes;
+
+        for (var a = 0f; a <= 360; a += increment)
+        {
+            SpawnSlime(new Slime(new int2(_mainTexture.width / 2, _mainTexture.height / 2), a, slimeColor));
         }
     }
     
@@ -148,13 +166,6 @@ public class Simulation : MonoBehaviour
         _slimes.Clear();
         _steerRandoms.Clear();
         _lifetimeRandoms.Clear();
-
-        var increment = 360f / numberOfSlimes;
-        
-        for (var a = 0f; a <= 360; a += increment)
-        {
-            SpawnSlime(new Slime(new int2(_mainTexture.width / 2, _mainTexture.height / 2), a));
-        }
     }
 
     private void UpdateRandoms()

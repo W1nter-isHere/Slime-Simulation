@@ -4,7 +4,15 @@ using UnityEngine.EventSystems;
 public class SlimeInput : MonoBehaviour
 {
     [SerializeField] private Simulation simulation;
-    
+    [SerializeField] private GameObject prefab;
+
+    private Camera _camera;
+
+    private void Start()
+    {
+        _camera = Camera.main;
+    }
+
     private void Update()
     {
         if (EventSystem.current.IsPointerOverGameObject()) return;
@@ -17,7 +25,16 @@ public class SlimeInput : MonoBehaviour
 
         if (Input.GetMouseButtonDown(1))
         {
-            simulation.AddPoi(mousePosition);
+            if (Input.GetKey(KeyCode.LeftShift))
+            {
+                var pos = _camera.ScreenToWorldPoint(mousePosition);
+                pos.z = 0;
+                Instantiate(prefab, pos, Quaternion.identity);
+            }
+            else
+            {
+                simulation.AddPoi(mousePosition);
+            }
         }
     }
 }
