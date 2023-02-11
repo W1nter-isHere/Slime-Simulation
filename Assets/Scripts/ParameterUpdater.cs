@@ -1,10 +1,8 @@
-﻿using TMPro;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class ParameterUpdater : MonoBehaviour
 {
     [SerializeField] private Simulation simulation;
-    [SerializeField] private TextMeshProUGUI speedModiferText;
     
     public void SensoryRangeChanged(string value)
     {
@@ -13,11 +11,19 @@ public class ParameterUpdater : MonoBehaviour
             simulation.sensoryRange = v; 
         }
     }
-    
-    public void SpeedModifierChanged(float value)
+
+    public void NumberOfSlimesChanged(string value)
     {
-        simulation.speedModifier = value;
-        speedModiferText.text = value.ToString("F1");
+        if (int.TryParse(value, out var v))
+        {
+            simulation.numberOfSlimes = v; 
+        }
+    }
+    
+    public void SpeedChanged(string value)
+    {
+        if (!float.TryParse(value, out var v)) return;
+        simulation.speed = v;
     }
 
     public void MinSteerChanged(string value)

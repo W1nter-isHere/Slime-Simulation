@@ -10,6 +10,9 @@ struct slime
      uint valid;
 };
 
+StructuredBuffer<int2> poi;
+int poi_count;
+
 StructuredBuffer<float> steer_randoms;
 StructuredBuffer<float> lifetime_randoms;
 RWStructuredBuffer<slime> slimes;
@@ -18,7 +21,7 @@ uint width;
 uint height;
 int sensory_range;
 float delta_time;
-float speed_modifier;
+float speed;
 
 void plot_line_low(const int x0, const int y0, const int x1, const int y1)
 {
@@ -126,8 +129,22 @@ float raycast(const int2 position, const float angle)
                break;
           }
 
+          int2 checking_pos = int2((int)pos.x, (int)pos.y);
+          
+          for (int j = 0; j < poi_count; j++)
+          {
+               int2 curr_pos = poi[j];
+               if (curr_pos.x == checking_pos.x && curr_pos.y == checking_pos.y)
+               {
+                    // makes this way more desirable
+                    sum *= 2;
+                    result[position] = float4(1, 0, 0, 1);
+                    break;
+               }
+          }
+          
           // Sample the color at the current position
-          sum += result[int2((int)pos.x, (int)pos.y)];
+          sum += result[checking_pos];
           
           // Move the current position along the ray in the direction of the angle
           pos += dir;
@@ -147,6 +164,8 @@ void CSMain(uint3 id : SV_DispatchThreadID)
           slimes[id.x].valid = 0;
           return;
      }
+
+     s.speed = speed;
      
      const float rand = steer_randoms[id.x];
      const float left = raycast(s.position, s.angle + radians(25)) * rand;
@@ -187,17 +206,6 @@ void CSMain(uint3 id : SV_DispatchThreadID)
      }
      
      const int2 pos = int2(x, y);
-     
-     float4 color = result[pos];
-     if (color.r > 0 && color.g > 0 && color.b > 0 && s.multiplied_speed == 0)
-     {
-          s.speed *= speed_modifier;
-          s.multiplied_speed = 1;
-     } else if (s.multiplied_speed == 1)
-     {
-          s.speed /= speed_modifier;
-          s.multiplied_speed = 0;
-     }
      
      // plot a line on the texture
      plot_line(s.position.x, s.position.y, x, y);

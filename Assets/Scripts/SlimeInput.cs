@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class SlimeInput : MonoBehaviour
 {
@@ -6,7 +7,17 @@ public class SlimeInput : MonoBehaviour
     
     private void Update()
     {
-        if (!Input.GetMouseButton(0)) return;
-        simulation.AddSlime(Input.mousePosition);
+        if (EventSystem.current.IsPointerOverGameObject()) return;
+        var mousePosition = Input.mousePosition;
+        
+        if (Input.GetMouseButton(0))
+        {
+            simulation.AddSlime(mousePosition);
+        }
+
+        if (Input.GetMouseButtonDown(1))
+        {
+            simulation.AddPoi(mousePosition);
+        }
     }
 }
