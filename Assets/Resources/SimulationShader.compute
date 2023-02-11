@@ -1,0 +1,187 @@
+#pragma kernel CSMain
+
+struct slime
+{
+     int2 position;
+     float angle;
+     float speed;
+};
+
+RWStructuredBuffer<slime> slimes;
+RWTexture2D<float4> result;
+uint width;
+uint height;
+int sensory_range;
+
+// Hash function www.cs.ubc.ca/~rbridson/docs/schechter-sca08-turbulence.pdf
+uint hash(uint state)
+{
+     state ^= 2747636419u;
+     state *= 2654435769u;
+     state ^= state >> 16;
+     state *= 2654435769u;
+     state ^= state >> 16;
+     state *= 2654435769u;
+     return state;
+}
+float random_within_01(const uint state)
+{
+     return hash(state) / 4294967295.0;
+}
+
+void plot_line_low(const int x0, const int y0, const int x1, const int y1)
+{
+     int dx = x1 - x0;
+     int dy = y1 - y0;
+     int yi = 1;
+
+     if (dy < 0)
+     {
+          yi = -1;
+          dy = -dy;   
+     }
+
+     int d = 2 * dy - dx;
+     int y = y0;
+
+     for (int x = x0; x < x1; x++)
+     {
+          result[int2(x, y)] = 1;
+          if (d > 0)
+          {
+               y = y + yi;
+               d = d + 2 * (dy - dx);
+          } else
+          {
+               d = d + 2*dy;
+          }
+     }
+}
+void plot_line_high(const int x0, const int y0, const int x1, const int y1)
+{
+     int dx = x1 - x0;
+     int dy = y1 - y0;
+     int xi = 1;
+     if (dx < 0)
+     {
+          xi = -1;
+          dx = -dx;
+     }
+     int d = (2 * dx) - dy;
+     int x = x0;
+     for (int y = y0; y <= y1; y++)
+     {
+          result[int2(x, y)] = 1;
+          if (d > 0)
+          {
+               x = x + xi;
+               d = d + (2 * (dx - dy));
+          }
+          else
+          {
+               d = d + 2*dx;
+          }
+     }
+}
+void plot_line(const int x0, const int y0, const int x1, const int y1)
+{
+     if (abs(y1 - y0) < abs(x1 - x0))
+     {
+          if (x0 > x1)
+          {
+               plot_line_low(x1, y1, x0, y0);
+          }
+          else
+          {
+               plot_line_low(x0, y0, x1, y1);
+          }
+     }
+     else
+     {
+          if (y0 > y1)
+          {
+               plot_line_high(x1, y1, x0, y0);
+          }
+          else
+          {
+               plot_line_high(x0, y0, x1, y1);
+          }
+     }
+}
+float2 angle_to_vec(const float angle)
+{
+     return float2(cos(angle), sin(angle));
+}    
+float vec_to_angle(float2 vec)
+{
+     return atan2(vec.y, vec.x);
+}
+
+[numthreads(16,1,1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+     slime s = slimes[id.x];
+     int2 target_trail = int2(-1, -1);
+
+     for (int r = 0; r < sensory_range; r++)
+     {
+          for (int x = s.position.x - sensory_range; x <= s.position.x + sensory_range; x++)
+          {
+               if (x < 0) continue;
+               for (int y = s.position.y - sensory_range; y <= s.position.y + sensory_range; y++)
+               {
+                    if (y < 0) continue;
+                    const float distance = sqrt((x - s.position.x) * (x - s.position.x) + (y - s.position.y) * (y - s.position.y));
+                    if (distance <= r + 1 && distance > r)
+                    {
+                         int2 pos = int2(x, y);
+                         float4 color = result[pos];
+                         if (color.r > 0.1 && color.g > 0.1 && color.b > 0.1)
+                         {
+                              target_trail = pos;
+                              break;
+                         }
+                    }
+               }
+          }
+     }
+
+     
+     if (target_trail.x != -1 && target_trail.y != -1)
+     {
+          s.angle = vec_to_angle(s.position - target_trail);
+     }
+
+     // calculate the new position
+     int x = s.position.x + round(s.speed * cos(s.angle));
+     int y = s.position.y + round(s.speed * sin(s.angle));
+
+     // wall collision
+     if (x < 0 || x >= width)
+     {
+          float2 vec = angle_to_vec(s.angle);
+          vec.x = -vec.x;
+          s.angle = vec_to_angle(vec);
+     }
+     if (y < 0 || y >= height)
+     {
+          float2 vec = angle_to_vec(s.angle);
+          vec.y = -vec.y;
+          s.angle = vec_to_angle(vec);
+     }
+     if (x < 0 || x >= width || y < 0 || y >= height)
+     {
+          // calculate the new position as the angle has changed
+          x = s.position.x + round(s.speed * cos(s.angle));
+          y = s.position.y + round(s.speed * sin(s.angle));
+     }
+     
+     const int2 pos = int2(x, y);
+
+     // plot a line on the texture
+     plot_line(s.position.x, s.position.y, x, y);
+     s.position = pos;
+
+     // update the list
+     slimes[id.x] = s;
+}
