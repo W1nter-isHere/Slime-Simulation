@@ -229,4 +229,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   simulationShader: {fileID: 7200000, guid: eccc331498e0dcc44a594ae97bdc2026, type: 3}
-  fadeoutShader: {fileID: 7200000, guid: 6c7ea85fd1462ef43989dbe34488dcd9, type: 3}
+  postProcessingShader: {fileID: 7200000, guid: 6c7ea85fd1462ef43989dbe34488dcd9, type: 3}
+  updateInterval: 1

@@ -1,0 +1,25 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+RWTexture2D<float4> result;
+float delta_time;
+uint width;
+uint height;
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    float4 nearby_colors = 0;
+    
+    for (int i = -1; i <= 1; i++)
+    {
+        for (int j = -1; j <= 1; j++)
+        {
+            int2 pos = int2(id.x + i, id.y + j);
+            if (pos.x < 0 || pos.x >= width || pos.y < 0 || pos.y >= height) continue;
+            nearby_colors += result[pos];
+        }
+    }
+    
+    result[id.xy] = nearby_colors / 9 * 0.9;
+}

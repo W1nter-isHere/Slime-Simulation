@@ -5,6 +5,7 @@ struct slime
      int2 position;
      float angle;
      float speed;
+     uint valid;
 };
 
 RWStructuredBuffer<slime> slimes;
@@ -12,6 +13,7 @@ RWTexture2D<float4> result;
 uint width;
 uint height;
 int sensory_range;
+float delta_time;
 
 // Hash function www.cs.ubc.ca/~rbridson/docs/schechter-sca08-turbulence.pdf
 uint hash(uint state)
@@ -117,41 +119,54 @@ float vec_to_angle(float2 vec)
      return atan2(vec.y, vec.x);
 }
 
+float distance(int2 v1, int2 v2)
+{
+     return sqrt(pow((float) v2.x - v1.x, 2) + pow((float)v2.y - v1.y, 2));
+}
+float raycast(const int2 position, const float angle)
+{
+     float sum = 0;
+     float2 dir = angle_to_vec(angle);
+     float2 pos = position;
+
+     for (int i = 0; i < sensory_range; i++)
+     {
+          // Check if the current position is within the bounds of the texture
+          if (pos.x < 0 || pos.x > width || pos.y < 0 || pos.y > height)
+          {
+               break;
+          }
+
+          // Sample the color at the current position
+          sum += result[int2((int)pos.x, (int)pos.y)];
+          
+          // Move the current position along the ray in the direction of the angle
+          pos += dir;
+     }
+
+     return sum; 
+}
+
 [numthreads(16,1,1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
      slime s = slimes[id.x];
-     int2 target_trail = int2(-1, -1);
+     if (s.valid != 1) return;
 
-     for (int r = 0; r < sensory_range; r++)
+     const float rand = random_within_01(id.y * width + id.x) / 2 + 0.5;
+     const float left = raycast(s.position, s.angle + radians(25)) * rand;
+     const float front = raycast(s.position, s.angle) * rand;
+     const float right = raycast(s.position, s.angle - radians(25)) * rand;
+
+     const float heaviest = max(max(left, front), right);     
+     if (heaviest == left)
      {
-          for (int x = s.position.x - sensory_range; x <= s.position.x + sensory_range; x++)
-          {
-               if (x < 0) continue;
-               for (int y = s.position.y - sensory_range; y <= s.position.y + sensory_range; y++)
-               {
-                    if (y < 0) continue;
-                    const float distance = sqrt((x - s.position.x) * (x - s.position.x) + (y - s.position.y) * (y - s.position.y));
-                    if (distance <= r + 1 && distance > r)
-                    {
-                         int2 pos = int2(x, y);
-                         float4 color = result[pos];
-                         if (color.r > 0.1 && color.g > 0.1 && color.b > 0.1)
-                         {
-                              target_trail = pos;
-                              break;
-                         }
-                    }
-               }
-          }
+          s.angle += radians(15) * rand;
+     } else if (heaviest == right)
+     {
+          s.angle -= radians(15) * rand;
      }
-
      
-     if (target_trail.x != -1 && target_trail.y != -1)
-     {
-          s.angle = vec_to_angle(s.position - target_trail);
-     }
-
      // calculate the new position
      int x = s.position.x + round(s.speed * cos(s.angle));
      int y = s.position.y + round(s.speed * sin(s.angle));
