@@ -154,7 +154,6 @@ float raycast(const int2 position, const float angle, const slime slime)
                     sum += checking_color * 0.5;
                }
           }
-          // sum += checking_color * 0.5;
 
           // check for poi
           for (int j = 0; j < poi_count; j++)
@@ -162,8 +161,7 @@ float raycast(const int2 position, const float angle, const slime slime)
                int2 curr_pos = poi[j];
                if (curr_pos.x == checking_pos.x && curr_pos.y == checking_pos.y)
                {
-                    sum += 100;
-                    sum = pow(sum, 2);
+                    sum += abs(sum) * 10;
                }
           }
 
@@ -193,18 +191,21 @@ void CSMain(uint3 id : SV_DispatchThreadID)
      s.speed = speed;
      
      const float rand = steer_randoms[id.x];
-     const float left = raycast(s.position, s.angle + radians(15), s) * rand;
-     const float front = raycast(s.position, s.angle, s) * rand;
-     const float right = raycast(s.position, s.angle - radians(15), s) * rand;
+     float heaviest_angle = s.angle;
+     float heaviest_weight = 0;
 
-     const float heaviest = max(max(left, right), front);     
-     if (heaviest == left)
+     for (int i = -15; i <= 15; i++)
      {
-          s.angle += radians(15) * rand;
-     } else if (heaviest == right)
-     {
-          s.angle -= radians(15) * rand;
+          float angle = s.angle + radians(i) * rand;
+          float weight = raycast(s.position, angle, s) * rand;
+          if (weight > heaviest_weight)
+          {
+               heaviest_weight = weight;
+               heaviest_angle = angle;
+          }
      }
+     
+     s.angle = heaviest_angle;
      
      // calculate the new position
      int x = s.position.x + round(s.speed * cos(s.angle));
