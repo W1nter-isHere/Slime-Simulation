@@ -23,18 +23,18 @@ public class SlimeInput : MonoBehaviour
             simulation.AddSlime(mousePosition);
         }
 
-        if (Input.GetMouseButtonDown(1))
+        if (!Input.GetMouseButtonDown(1)) return;
+        
+        var pos = _camera.ScreenToWorldPoint(mousePosition);
+        pos.z = 0;
+
+        if (Input.GetKey(KeyCode.LeftShift))
         {
-            if (Input.GetKey(KeyCode.LeftShift))
-            {
-                var pos = _camera.ScreenToWorldPoint(mousePosition);
-                pos.z = 0;
-                Instantiate(prefab, pos, Quaternion.identity);
-            }
-            else
-            {
-                simulation.AddPoi(mousePosition);
-            }
+            Instantiate(prefab, pos, Quaternion.identity);
+        }
+        else
+        {
+            simulation.AddPoi(mousePosition, pos);
         }
     }
 }

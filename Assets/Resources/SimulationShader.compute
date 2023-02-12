@@ -125,7 +125,7 @@ float distance(int2 v1, int2 v2)
 {
      return sqrt(pow((float) v2.x - v1.x, 2) + pow((float)v2.y - v1.y, 2));
 }
-float raycast(const int2 position, const float angle, slime slime)
+float raycast(const int2 position, const float angle, const slime slime)
 {
      float sum = 0;
      float2 dir = angle_to_vec(angle);
@@ -141,29 +141,29 @@ float raycast(const int2 position, const float angle, slime slime)
 
           int2 checking_pos = int2((int)pos.x, (int)pos.y);
 
+          // check for different species
+          float4 checking_color = result[checking_pos];
+          
+          if (checking_color.r != 0 || checking_color.b != 0 || checking_color.g != 0)
+          {
+               if (!compare_colors(slime.color, checking_color))
+               {
+                    sum -= checking_color * 0.5;
+               } else
+               {
+                    sum += checking_color * 0.5;
+               }
+          }
+          // sum += checking_color * 0.5;
+
           // check for poi
           for (int j = 0; j < poi_count; j++)
           {
                int2 curr_pos = poi[j];
                if (curr_pos.x == checking_pos.x && curr_pos.y == checking_pos.y)
                {
-                    sum *= 2;
-                    break;
-               }
-          }
-
-          // check for different species
-          float4 checking_color = result[checking_pos];
-
-          if (checking_color.r != 0 || checking_color.b != 0 || checking_color.g != 0)
-          {
-               // color ratio does not match, its a different species
-               if (!compare_colors(slime.color, checking_color))
-               {
-                    sum -= checking_color;
-               } else
-               {
-                    sum += checking_color;
+                    sum += 100;
+                    sum = pow(sum, 2);
                }
           }
 
@@ -180,20 +180,24 @@ void CSMain(uint3 id : SV_DispatchThreadID)
      slime s = slimes[id.x];
      if (s.valid != 1) return;
 
-     if (s.time_elapsed > lifetime_randoms[id.x])
+     float lifetime_rand = lifetime_randoms[id.x];
+     if (lifetime_rand > 0)
      {
-          slimes[id.x].valid = 0;
-          return;
+          if (s.time_elapsed > lifetime_rand)
+          {
+               slimes[id.x].valid = 0;
+               return;
+          }
      }
 
      s.speed = speed;
      
      const float rand = steer_randoms[id.x];
-     const float left = raycast(s.position, s.angle + radians(25), s) * rand;
+     const float left = raycast(s.position, s.angle + radians(15), s) * rand;
      const float front = raycast(s.position, s.angle, s) * rand;
-     const float right = raycast(s.position, s.angle - radians(25), s) * rand;
+     const float right = raycast(s.position, s.angle - radians(15), s) * rand;
 
-     const float heaviest = max(max(left, front), right);     
+     const float heaviest = max(max(left, right), front);     
      if (heaviest == left)
      {
           s.angle += radians(15) * rand;
@@ -211,13 +215,13 @@ void CSMain(uint3 id : SV_DispatchThreadID)
      {
           float2 vec = angle_to_vec(s.angle);
           vec.x = -vec.x;
-          s.angle = vec_to_angle(vec);
+          s.angle = vec_to_angle(vec) * rand;
      }
      if (y < 0 || y >= height)
      {
           float2 vec = angle_to_vec(s.angle);
           vec.y = -vec.y;
-          s.angle = vec_to_angle(vec);
+          s.angle = vec_to_angle(vec) * rand;
      }
      if (x < 0 || x >= width || y < 0 || y >= height)
      {

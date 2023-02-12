@@ -1736,8 +1736,7 @@ MonoBehaviour:
   simulationShader: {fileID: 7200000, guid: eccc331498e0dcc44a594ae97bdc2026, type: 3}
   postProcessingShader: {fileID: 7200000, guid: 6c7ea85fd1462ef43989dbe34488dcd9, type: 3}
   clearScreenShader: {fileID: 7200000, guid: 17d4f25c3465a2a468940fde58ed32b0, type: 3}
-  pointRendererShader: {fileID: 7200000, guid: 9e8ded2b2e8b1784ab73787451d59ea4, type: 3}
-  poiVisualRadius: 5
+  poiPrefab: {fileID: 5510808411729150433, guid: 90cabc04787a3944a994e2343f62687d, type: 3}
 --- !u!1 &555879035
 GameObject:
   m_ObjectHideFlags: 0

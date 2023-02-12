@@ -29,9 +29,9 @@ public class Simulation : MonoBehaviour
     [SerializeField] private ComputeShader simulationShader;
     [SerializeField] private ComputeShader postProcessingShader;
     [SerializeField] private ComputeShader clearScreenShader;
-    [SerializeField] private ComputeShader pointRendererShader;
-    [SerializeField, Min(1)] private int poiVisualRadius;
 
+    [SerializeField] private GameObject poiPrefab;
+    
     private RenderTexture _mainTexture;
 
     private List<Slime> _slimes;
@@ -112,21 +112,13 @@ public class Simulation : MonoBehaviour
             steerRandomsBuffer.Dispose();
             lifetimeRandomsBuffer.Dispose();
         }
-        else if (poiCount <= 0)
+        else
         {
             clearScreenShader.SetTexture(0, "result", _mainTexture);
             clearScreenShader.Dispatch(0, Mathf.CeilToInt(_mainTexture.width / 8f),
                 Mathf.CeilToInt(_mainTexture.height / 8f), 1);
         }
 
-        if (poiCount > 0)
-        {
-            pointRendererShader.SetBuffer(0, "points", poiBuffer);
-            pointRendererShader.SetTexture(0, "result", _mainTexture);
-            pointRendererShader.SetInt("radius", poiVisualRadius);
-            pointRendererShader.Dispatch(0, poiCount, 1, 1);
-        }
-        
         poiBuffer.Dispose();
         UpdateRandoms();
         Graphics.Blit(_mainTexture, dest);
@@ -141,13 +133,13 @@ public class Simulation : MonoBehaviour
         ));
     }
 
-    public void AddPoi(Vector2 screenSpace)
+    public void AddPoi(Vector2 screenSpace, Vector2 worldSpace)
     {
-        var p = new int2((int)(screenSpace.x / Screen.width * _mainTexture.width),
-            (int)(screenSpace.y / Screen.height * _mainTexture.height));
+        var p = new int2((int)(screenSpace.x / Screen.width * _mainTexture.width), (int)(screenSpace.y / Screen.height * _mainTexture.height));
         if (!_poi.Contains(p))
         {
             _poi.Add(p);
+            Instantiate(poiPrefab, worldSpace, Quaternion.identity);
         }
     }
 
