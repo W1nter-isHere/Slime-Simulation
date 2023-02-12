@@ -14,11 +14,11 @@ public class Simulation : MonoBehaviour
     
     public int sensoryRange = 20;
     public float speed = 10;
-    public float minimumSteerRandomnessFactor = 0.75f;
-    public float maximumSteerRandomnessFactor = 1.5f;
+    public float minimumSteerRandomnessFactor = 1.5f;
+    public float maximumSteerRandomnessFactor = 3.0f;
     public float minimumLifetime = 45;
     public float maximumLifetime = 90;
-    public int numberOfSlimes = 360000;
+    public int numberOfSlimes = 10000;
     public Color32 slimeColor = Color.white;
 
     [NonSerialized] public bool DirtySteerFactor;
@@ -60,7 +60,6 @@ public class Simulation : MonoBehaviour
 
     private void OnRenderImage(RenderTexture src, RenderTexture dest)
     {
-        var deltaTime = Time.deltaTime;
 
         var poiCount = _poi.Count;
         var poiBuffer = new ComputeBuffer(poiCount == 0 ? 1 : poiCount, Marshal.SizeOf<int2>());
@@ -72,8 +71,8 @@ public class Simulation : MonoBehaviour
 
         if (_slimes.Count > 0)
         {
+            var deltaTime = Time.deltaTime;
             var slimesBuffer = new ComputeBuffer(_slimes.Count, Marshal.SizeOf<Slime>());
-
             var steerRandomsBuffer = new ComputeBuffer(_steerRandoms.Count, sizeof(float));
             var lifetimeRandomsBuffer = new ComputeBuffer(_lifetimeRandoms.Count, sizeof(float));
 

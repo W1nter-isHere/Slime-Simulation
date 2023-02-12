@@ -1725,11 +1725,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sensoryRange: 20
   speed: 10
-  minimumSteerRandomnessFactor: 0.75
-  maximumSteerRandomnessFactor: 1.5
+  minimumSteerRandomnessFactor: 1.5
+  maximumSteerRandomnessFactor: 3
   minimumLifetime: 60
   maximumLifetime: 90
-  numberOfSlimes: 360000
+  numberOfSlimes: 10000
   slimeColor:
     serializedVersion: 2
     rgba: 4294967295

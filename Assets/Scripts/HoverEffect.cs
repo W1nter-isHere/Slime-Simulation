@@ -1,5 +1,4 @@
-﻿using System;
-using DG.Tweening;
+﻿using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -10,7 +9,7 @@ public class HoverEffect : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     private void Start()
     {
         _canvasGroup = GetComponent<CanvasGroup>();
-        _canvasGroup.alpha = 0.25f;
+        _canvasGroup.alpha = 0.05f;
     }
 
     public void OnPointerEnter(PointerEventData eventData)
@@ -20,6 +19,6 @@ public class HoverEffect : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        _canvasGroup.DOFade(0.25f, 0.2f);
+        _canvasGroup.DOFade(0.05f, 0.2f);
     }
 }

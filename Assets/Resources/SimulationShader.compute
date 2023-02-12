@@ -113,18 +113,15 @@ float vec_to_angle(float2 vec)
 }
 bool compare_colors(float3 color1, float3 color2)
 {
+     const float threshold = 0.05f; 
      float3 ratio1 = color1 / max(color1.r, max(color1.g, color1.b));
      float3 ratio2 = color2 / max(color2.r, max(color2.g, color2.b));
 
-     return (abs(ratio1.r - ratio2.r) <= 0.05) &&
-            (abs(ratio1.g - ratio2.g) <= 0.05) &&
-            (abs(ratio1.b - ratio2.b) <= 0.05);
+     return (abs(ratio1.r - ratio2.r) <= threshold) &&
+            (abs(ratio1.g - ratio2.g) <= threshold) &&
+            (abs(ratio1.b - ratio2.b) <= threshold);
 }
 
-float distance(int2 v1, int2 v2)
-{
-     return sqrt(pow((float) v2.x - v1.x, 2) + pow((float)v2.y - v1.y, 2));
-}
 float raycast(const int2 position, const float angle, const slime slime)
 {
      float sum = 0;
@@ -161,7 +158,7 @@ float raycast(const int2 position, const float angle, const slime slime)
                int2 curr_pos = poi[j];
                if (curr_pos.x == checking_pos.x && curr_pos.y == checking_pos.y)
                {
-                    sum += abs(sum) * 10;
+                    sum += abs(sum) * 40;
                }
           }
 
