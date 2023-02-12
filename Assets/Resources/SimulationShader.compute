@@ -24,6 +24,20 @@ int sensory_range;
 float delta_time;
 float speed;
 
+uint hash(uint state)
+{
+     state ^= 2747636419u;
+     state *= 2654435769u;
+     state ^= state >> 16;
+     state *= 2654435769u;
+     state ^= state >> 16;
+     state *= 2654435769u;
+     return state;
+}
+float random_within_01(const uint state)
+{
+     return hash(state) / 4294967295.0;
+}
 void plot_line_low(const int x0, const int y0, const int x1, const int y1, const slime slime)
 {
      int dx = x1 - x0;
@@ -145,20 +159,10 @@ float raycast(const int2 position, const float angle, const slime slime)
           {
                if (!compare_colors(slime.color, checking_color))
                {
-                    sum -= checking_color * 0.5;
+                    sum -= checking_color;
                } else
                {
-                    sum += checking_color * 0.5;
-               }
-          }
-
-          // check for poi
-          for (int j = 0; j < poi_count; j++)
-          {
-               int2 curr_pos = poi[j];
-               if (curr_pos.x == checking_pos.x && curr_pos.y == checking_pos.y)
-               {
-                    sum += abs(sum) * 40;
+                    sum += checking_color;
                }
           }
 
@@ -167,6 +171,26 @@ float raycast(const int2 position, const float angle, const slime slime)
      }
 
      return sum; 
+}
+float closest_float(const float reference, const float a, const float b, const float c)
+{
+     const float distance_a = abs(reference - a);
+     const float distance_b = abs(reference - b);
+     const float distance_c = abs(reference - c);
+
+     const float min_distance = min(min(distance_a, distance_b), distance_c);
+
+     if (min_distance == distance_a)
+          return a;
+     if (min_distance == distance_b)
+          return b;
+     
+     return c;
+}
+float distance_squared(const float2 a, const float2 b)
+{
+     const float2 delta = a - b;
+     return dot(delta, delta);
 }
 
 [numthreads(16,1,1)]
@@ -188,21 +212,42 @@ void CSMain(uint3 id : SV_DispatchThreadID)
      s.speed = speed;
      
      const float rand = steer_randoms[id.x];
-     float heaviest_angle = s.angle;
-     float heaviest_weight = 0;
-
-     for (int i = -15; i <= 15; i++)
+     int2 poi_chosen = int2(-1, -1);
+     float poi_weight = -20000;
+     float poi_angle = s.angle;
+     
+     for (int i = 0; i < poi_count; i++)
      {
-          float angle = s.angle + radians(i) * rand;
-          float weight = raycast(s.position, angle, s) * rand;
-          if (weight > heaviest_weight)
+          int2 poi_checking = poi[i];
+          float current_dst = distance_squared(poi_checking, s.position);
+          
+          if (((poi_chosen.x == -1 && poi_chosen.y == 1) || current_dst < distance_squared(poi_chosen, s.position)) && current_dst <= pow(sensory_range, 2))
           {
-               heaviest_weight = weight;
-               heaviest_angle = angle;
+               poi_chosen = poi_checking;
           }
      }
+
+     if (poi_chosen.x != -1 && poi_chosen.y != -1)
+     {
+          poi_angle = vec_to_angle(poi_chosen - s.position) * rand;
+          poi_weight = 50 * random_within_01(id.x);
+     }
      
-     s.angle = heaviest_angle;
+     float left = raycast(s.position, s.angle + radians(15), s) * rand;
+     float front = raycast(s.position, s.angle, s) * rand;
+     float right = raycast(s.position, s.angle - radians(15), s) * rand;
+     
+     const float heaviest = max(max(max(left, right), front), poi_weight);     
+     if (heaviest == left)
+     {
+          s.angle += radians(15) * rand;
+     } else if (heaviest == right)
+     {
+          s.angle -= radians(15) * rand;
+     } else if (heaviest == poi_weight)
+     {
+          s.angle = poi_angle;
+     }
      
      // calculate the new position
      int x = s.position.x + round(s.speed * cos(s.angle));

@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
+using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 using Screen = UnityEngine.Device.Screen;
 
@@ -31,6 +32,8 @@ public class Simulation : MonoBehaviour
     [SerializeField] private ComputeShader clearScreenShader;
 
     [SerializeField] private GameObject poiPrefab;
+    [FormerlySerializedAs("placeableParents")] [SerializeField] private Transform placeableParent;
+    [SerializeField] private GameObject spawnerPrefab;
     
     private RenderTexture _mainTexture;
 
@@ -138,8 +141,13 @@ public class Simulation : MonoBehaviour
         if (!_poi.Contains(p))
         {
             _poi.Add(p);
-            Instantiate(poiPrefab, worldSpace, Quaternion.identity);
+            Instantiate(poiPrefab, worldSpace, Quaternion.identity, placeableParent);
         }
+    }
+
+    public void AddSpawner(Vector2 worldSpace)
+    {
+        Instantiate(spawnerPrefab, worldSpace, Quaternion.identity, placeableParent);
     }
 
     public void Add()
@@ -155,8 +163,14 @@ public class Simulation : MonoBehaviour
     public void Reset()
     {
         _slimes.Clear();
+        _poi.Clear();
         _steerRandoms.Clear();
         _lifetimeRandoms.Clear();
+        
+        foreach (Transform child in placeableParent)
+        {
+            Destroy(child.gameObject);
+        }
     }
 
     private void UpdateRandoms()

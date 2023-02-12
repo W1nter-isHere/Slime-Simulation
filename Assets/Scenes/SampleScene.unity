@@ -1565,6 +1565,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Padding: {x: -8, y: -5, z: -8, w: -5}
   m_Softness: {x: 0, y: 0}
+--- !u!1 &468976848
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 468976849}
+  m_Layer: 3
+  m_Name: Placeables
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &468976849
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 468976848}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 7
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &482244530
 GameObject:
   m_ObjectHideFlags: 0
@@ -1737,6 +1768,8 @@ MonoBehaviour:
   postProcessingShader: {fileID: 7200000, guid: 6c7ea85fd1462ef43989dbe34488dcd9, type: 3}
   clearScreenShader: {fileID: 7200000, guid: 17d4f25c3465a2a468940fde58ed32b0, type: 3}
   poiPrefab: {fileID: 5510808411729150433, guid: 90cabc04787a3944a994e2343f62687d, type: 3}
+  placeableParent: {fileID: 468976849}
+  spawnerPrefab: {fileID: 8118074106139184572, guid: 6447d5da87cd05f45b905a3faf8b481c, type: 3}
 --- !u!1 &555879035
 GameObject:
   m_ObjectHideFlags: 0
@@ -3367,7 +3400,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   simulation: {fileID: 519420033}
-  prefab: {fileID: 8118074106139184572, guid: 6447d5da87cd05f45b905a3faf8b481c, type: 3}
 --- !u!1 &842969596
 GameObject:
   m_ObjectHideFlags: 0

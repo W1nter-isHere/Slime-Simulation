@@ -4,7 +4,6 @@ using UnityEngine.EventSystems;
 public class SlimeInput : MonoBehaviour
 {
     [SerializeField] private Simulation simulation;
-    [SerializeField] private GameObject prefab;
 
     private Camera _camera;
 
@@ -30,7 +29,7 @@ public class SlimeInput : MonoBehaviour
 
         if (Input.GetKey(KeyCode.LeftShift))
         {
-            Instantiate(prefab, pos, Quaternion.identity);
+            simulation.AddSpawner(pos);
         }
         else
         {
